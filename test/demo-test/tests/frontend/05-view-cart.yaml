@@ -1,0 +1,22 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Frontend: View cart"
+description: "Simulate a user viewing their shopping cart and verify the CartService span"
+
+trigger:
+  type: http
+  method: GET
+  url: "http://${FRONTEND_ADDR}/api/cart?userId=2491f868-88f1-4345-8836-d5d8511a9f83"
+  expected_status: 200
+
+jaeger_query:
+  service: "frontend"
+  lookback_seconds: 30
+  poll_interval_seconds: 3
+  poll_max_attempts: 20
+
+assertions:
+  - name: "CartService GetCart was called"
+    operation: "oteldemo.CartService/GetCart"
+    min_spans: 1

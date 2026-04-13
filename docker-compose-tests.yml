@@ -4,7 +4,6 @@
 include:
   - path:
       - docker-compose.yml     # depend on the main docker-compose file
-      - docker-compose-tests_include-override.yml  # include override for tests
 
 services:
   # *****
@@ -27,37 +26,20 @@ services:
     depends_on:
       - frontend
 
-  # Tracebased Tests
+  # Trace-based Tests
   traceBasedTests:
     image: ${IMAGE_NAME}:${DEMO_VERSION}-traceBasedTests
     container_name: traceBasedTests
     build:
       context: ./
-      dockerfile: ./test/tracetesting/Dockerfile
-      args:
-        TRACETEST_IMAGE_VERSION: ${TRACETEST_IMAGE_VERSION}
+      dockerfile: ./test/demo-test/Dockerfile
     environment:
-      - AD_ADDR
-      - CART_ADDR
-      - CHECKOUT_ADDR
-      - CURRENCY_ADDR
-      - EMAIL_ADDR
       - FRONTEND_ADDR
-      - PAYMENT_ADDR
-      - PRODUCT_CATALOG_ADDR
-      - PRODUCT_REVIEWS_ADDR
-      - RECOMMENDATION_ADDR
       - SHIPPING_ADDR
-      - KAFKA_ADDR
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    volumes:
-      - ./test/tracetesting:/app/test/tracetesting
-      - ./pb:/app/pb
+      - EMAIL_ADDR
+      - JAEGER_URL=http://jaeger:16686/api
+      - SERVICES_TO_TEST
     depends_on:
-      tracetest-server:
-        condition: service_healthy
-      # adding demo services as dependencies
       accounting:
         condition: service_started
       ad:
@@ -92,43 +74,5 @@ services:
         condition: service_started
       kafka:
         condition: service_started
-
-  tracetest-server:
-    image: ${TRACETEST_IMAGE}
-    platform: linux/amd64
-    container_name: tracetest-server
-    volumes:
-      - type: bind
-        source: ./test/tracetesting/tracetest-config.yaml
-        target: /app/tracetest.yaml
-      - type: bind
-        source: ./test/tracetesting/tracetest-provision.yaml
-        target: /app/provision.yaml
-    command: --provisioning-file /app/provision.yaml
-    ports:
-      - 11633:11633
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    depends_on:
-      tracetest-postgres:
-        condition: service_healthy
-      otel-collector:
+      jaeger:
         condition: service_started
-    healthcheck:
-      test: [ "CMD", "wget", "--spider", "localhost:11633" ]
-      interval: 1s
-      timeout: 3s
-      retries: 60
-
-  tracetest-postgres:
-    image: ${POSTGRES_IMAGE}
-    container_name: tracetest-postgres
-    environment:
-      - POSTGRES_PASSWORD
-    healthcheck:
-      test: pg_isready
-      interval: 1s
-      timeout: 5s
-      retries: 60
-    ports:
-      - 5432

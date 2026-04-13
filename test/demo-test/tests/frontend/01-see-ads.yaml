@@ -1,0 +1,22 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Frontend: See ads"
+description: "Simulate a user seeing ads and verify the AdService span"
+
+trigger:
+  type: http
+  method: GET
+  url: "http://${FRONTEND_ADDR}/api/data?contextKeys=binoculars,telescopes,accessories"
+  expected_status: 200
+
+jaeger_query:
+  service: "frontend"
+  lookback_seconds: 30
+  poll_interval_seconds: 3
+  poll_max_attempts: 20
+
+assertions:
+  - name: "AdService was called"
+    operation: "oteldemo.AdService/GetAds"
+    min_spans: 1

@@ -1,0 +1,37 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Shipping: Get quote"
+description: "Request a shipping quote and verify the span and response"
+
+trigger:
+  type: http
+  method: POST
+  url: "${SHIPPING_ADDR}/get-quote"
+  headers:
+    Content-Type: application/json
+  body:
+    address:
+      streetAddress: "One Microsoft Way"
+      city: "Redmond"
+      state: "Washington"
+      country: "United States"
+      zipCode: "98052"
+    items:
+      - productId: "66VCHSJNUP"
+        quantity: 2
+  expected_status: 200
+  response_assertions:
+    - json_path: "$.cost_usd.currency_code"
+      equals: "USD"
+
+jaeger_query:
+  service: "shipping"
+  lookback_seconds: 30
+  poll_interval_seconds: 3
+  poll_max_attempts: 20
+
+assertions:
+  - name: "GetQuote span exists"
+    operation: "/get-quote"
+    min_spans: 1

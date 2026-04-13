@@ -1,0 +1,47 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Email: Order confirmation"
+description: "Send an order confirmation email and verify the send_email span"
+
+trigger:
+  type: http
+  method: POST
+  url: "${EMAIL_ADDR}/send_order_confirmation"
+  headers:
+    Content-Type: application/json
+  body:
+    email: "google@example.com"
+    order:
+      order_id: "505"
+      shipping_tracking_id: "dead-beef"
+      shipping_cost:
+        currency_code: "USD"
+        units: 17
+        nanos: 980000000
+      shipping_address:
+        street_address_1: "1600 Amphitheatre Parkway"
+        city: "Mountain View"
+        state: "California"
+        country: "United States"
+        zip_code: "94043"
+      items:
+        - item:
+            product_id: "1YMWWN1N4O"
+            quantity: 5
+          cost:
+            currency_code: "USD"
+            units: 100
+            nanos: 0
+  expected_status: 200
+
+jaeger_query:
+  service: "email"
+  lookback_seconds: 30
+  poll_interval_seconds: 3
+  poll_max_attempts: 20
+
+assertions:
+  - name: "Email was sent"
+    operation: "send_email"
+    min_spans: 1

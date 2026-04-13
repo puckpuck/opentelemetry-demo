@@ -1,0 +1,37 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Shipping: Ship order"
+description: "Ship an order and verify the tracking ID is returned and span exists"
+
+trigger:
+  type: http
+  method: POST
+  url: "${SHIPPING_ADDR}/ship-order"
+  headers:
+    Content-Type: application/json
+  body:
+    address:
+      streetAddress: "One Microsoft Way"
+      city: "Redmond"
+      state: "Washington"
+      country: "United States"
+      zipCode: "98052"
+    items:
+      - productId: "66VCHSJNUP"
+        quantity: 1
+  expected_status: 200
+  response_assertions:
+    - json_path: "$.tracking_id"
+      not_empty: true
+
+jaeger_query:
+  service: "shipping"
+  lookback_seconds: 30
+  poll_interval_seconds: 3
+  poll_max_attempts: 20
+
+assertions:
+  - name: "ShipOrder span exists"
+    operation: "/ship-order"
+    min_spans: 1

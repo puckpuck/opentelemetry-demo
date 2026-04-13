@@ -1,0 +1,27 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Frontend: Browse product"
+description: "Simulate a user browsing a product page and verify the ProductCatalogService span"
+
+trigger:
+  type: http
+  method: GET
+  url: "http://${FRONTEND_ADDR}/api/products/0PUK6V6EV0"
+  expected_status: 200
+  response_assertions:
+    - json_path: "$.id"
+      equals: "0PUK6V6EV0"
+
+jaeger_query:
+  service: "frontend"
+  lookback_seconds: 30
+  poll_interval_seconds: 3
+  poll_max_attempts: 20
+
+assertions:
+  - name: "ProductCatalogService was called"
+    operation: "oteldemo.ProductCatalogService/GetProduct"
+    min_spans: 1
+    span_attributes:
+      app.product.id: "0PUK6V6EV0"

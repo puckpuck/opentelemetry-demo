@@ -1,0 +1,64 @@
+# Copyright The OpenTelemetry Authors
+# SPDX-License-Identifier: Apache-2.0
+
+name: "Frontend: Checkout shopping cart"
+description: "Simulate a user completing checkout, verifying downstream service spans"
+
+trigger:
+  type: http
+  method: POST
+  url: "http://${FRONTEND_ADDR}/api/checkout"
+  headers:
+    Content-Type: application/json
+  body:
+    userId: "2491f868-88f1-4345-8836-d5d8511a9f83"
+    email: "someone@example.com"
+    address:
+      streetAddress: "1600 Amphitheatre Parkway"
+      state: "CA"
+      country: "United States"
+      city: "Mountain View"
+      zipCode: "94043"
+    userCurrency: "USD"
+    creditCard:
+      creditCardCvv: 672
+      creditCardExpirationMonth: 1
+      creditCardExpirationYear: 2030
+      creditCardNumber: "4432-8015-6152-0454"
+  expected_status: 200
+  response_assertions:
+    - json_path: "$.orderId"
+      not_empty: true
+
+jaeger_query:
+  service: "frontend"
+  lookback_seconds: 30
+  poll_interval_seconds: 3
+  poll_max_attempts: 20
+
+assertions:
+  - name: "Order was placed"
+    operation: "oteldemo.CheckoutService/PlaceOrder"
+    min_spans: 1
+    span_attributes:
+      app.user.id: "2491f868-88f1-4345-8836-d5d8511a9f83"
+
+  - name: "User was charged"
+    operation: "oteldemo.PaymentService/Charge"
+    min_spans: 1
+    span_attributes:
+      rpc.grpc.status_code: 0
+
+  - name: "Cart was emptied"
+    operation: "oteldemo.CartService/EmptyCart"
+    min_spans: 1
+
+  - name: "Order sent to Kafka"
+    operation: "orders publish"
+    min_spans: 1
+    span_attributes:
+      messaging.destination.name: "orders"
+
+  - name: "Order was shipped"
+    operation: "/ship-order"
+    min_spans: 1
